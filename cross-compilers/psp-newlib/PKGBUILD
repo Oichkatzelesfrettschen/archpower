@@ -1,0 +1,50 @@
+# POWER Maintainer: Alexander Baldeck <alex.bldck@gmail.com>
+# Maintainer: Alexander Baldeck <alex.bldck@gmail.com>
+
+_target=psp
+pkgname=psp-newlib
+pkgver=4.5.0
+pkgrel=1
+pkgdesc='C library for embedded systems (PlayStation Portable)'
+arch=(any)
+url='https://github.com/pspdev/newlib'
+license=(custom)
+depends=(psp-binutils)
+makedepends=(git psp-gcc)
+options=(!strip !libtool staticlibs)
+source=(git+https://github.com/pspdev/newlib.git)
+sha256sums=('SKIP')
+
+pkgver() {
+  cd newlib
+  git describe --tags 2>/dev/null | sed 's/^v//;s/newlib-//;s/_/./g;s/-/+/g' || echo "4.5.0"
+}
+
+build() {
+  cd newlib
+
+  mkdir -p build && cd build
+
+  CFLAGS_FOR_TARGET="-O2 -G0"
+
+  ../configure \
+    --prefix=/usr/pspdev \
+    --target=${_target} \
+    --with-sysroot=/usr/pspdev/${_target} \
+    --enable-newlib-retargetable-locking \
+    --enable-newlib-multithread \
+    --enable-newlib-io-c99-formats \
+    --enable-newlib-iconv \
+    --enable-newlib-iconv-encodings=us_ascii,utf8,utf16,ucs_2_internal,ucs_4_internal,iso_8859_1
+
+  make
+}
+
+package() {
+  cd newlib/build
+
+  make DESTDIR="$pkgdir" install
+
+  # Install license
+  install -Dm644 ../COPYING.NEWLIB "$pkgdir/usr/share/licenses/$pkgname/COPYING"
+}

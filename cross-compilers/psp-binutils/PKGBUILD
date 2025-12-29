@@ -1,0 +1,56 @@
+# POWER Maintainer: Alexander Baldeck <alex.bldck@gmail.com>
+# Maintainer: Alexander Baldeck <alex.bldck@gmail.com>
+
+_target=psp
+pkgname=psp-binutils
+pkgver=2.44
+pkgrel=1
+pkgdesc='Assemble and manipulate binary and object files for PlayStation Portable (Allegrex CPU)'
+arch=(x86_64 powerpc64le powerpc64 powerpc)
+url='https://github.com/pspdev/binutils-gdb'
+license=(GPL)
+depends=(glibc zlib libelf)
+makedepends=(git)
+source=(git+https://github.com/pspdev/binutils-gdb.git)
+sha256sums=('SKIP')
+
+pkgver() {
+  cd binutils-gdb
+  git describe --tags 2>/dev/null | sed 's/^v//;s/-/+/g' || echo "2.44"
+}
+
+build() {
+  cd binutils-gdb
+
+  mkdir -p build && cd build
+
+  ../configure \
+    --prefix=/usr/pspdev \
+    --target=${_target} \
+    --with-sysroot=/usr/pspdev/${_target} \
+    --enable-plugins \
+    --disable-initfini-array \
+    --disable-werror \
+    --disable-nls \
+    --disable-sim \
+    --with-python=no
+
+  make
+}
+
+package() {
+  cd binutils-gdb/build
+
+  make DESTDIR="$pkgdir" install
+
+  # Remove info documents that conflict with host version
+  rm -rf "$pkgdir/usr/pspdev/share/info"
+
+  # Create profile.d script for environment setup
+  install -dm755 "$pkgdir/etc/profile.d"
+  cat > "$pkgdir/etc/profile.d/pspdev.sh" << 'EOF'
+export PSPDEV=/usr/pspdev
+export PATH=$PATH:$PSPDEV/bin
+EOF
+  chmod 644 "$pkgdir/etc/profile.d/pspdev.sh"
+}

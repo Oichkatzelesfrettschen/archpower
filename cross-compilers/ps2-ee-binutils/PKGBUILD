@@ -1,0 +1,57 @@
+# POWER Maintainer: Alexander Baldeck <alex.bldck@gmail.com>
+# Maintainer: Alexander Baldeck <alex.bldck@gmail.com>
+
+_target=mips64r5900el-ps2-elf
+_target_alias=ee
+pkgname=ps2-ee-binutils
+pkgver=2.45.1
+pkgrel=1
+pkgdesc='Assemble and manipulate binary and object files for PlayStation 2 Emotion Engine'
+arch=(x86_64 powerpc64le powerpc64 powerpc)
+url='https://github.com/ps2dev/binutils-gdb'
+license=(GPL)
+depends=(glibc zlib libelf)
+makedepends=(git)
+source=(git+https://github.com/ps2dev/binutils-gdb.git)
+sha256sums=('SKIP')
+
+pkgver() {
+  cd binutils-gdb
+  git describe --tags 2>/dev/null | sed 's/^v//;s/-/+/g' || echo "2.45.1"
+}
+
+build() {
+  cd binutils-gdb
+
+  mkdir -p build && cd build
+
+  ../configure \
+    --prefix=/usr/ps2dev/${_target_alias} \
+    --target=${_target} \
+    --with-sysroot=/usr/ps2dev/${_target_alias}/${_target} \
+    --disable-separate-code \
+    --disable-sim \
+    --disable-nls \
+    --disable-werror \
+    --with-python=no
+
+  make
+}
+
+package() {
+  cd binutils-gdb/build
+
+  make DESTDIR="$pkgdir" install
+
+  # Remove info documents that conflict with host version
+  rm -rf "$pkgdir/usr/ps2dev/${_target_alias}/share/info"
+
+  # Create profile.d script for environment setup
+  install -dm755 "$pkgdir/etc/profile.d"
+  cat > "$pkgdir/etc/profile.d/ps2dev.sh" << 'EOF'
+export PS2DEV=/usr/ps2dev
+export PS2SDK=$PS2DEV/ps2sdk
+export PATH=$PATH:$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin
+EOF
+  chmod 644 "$pkgdir/etc/profile.d/ps2dev.sh"
+}

@@ -1,0 +1,73 @@
+# POWER Maintainer: Alexander Baldeck <alex.bldck@gmail.com>
+# Maintainer: Alexander Baldeck <alex.bldck@gmail.com>
+
+_target=psp
+pkgname=psp-gcc
+pkgver=14.2.0
+pkgrel=1
+pkgdesc='The GNU Compiler Collection for PlayStation Portable (Allegrex CPU)'
+arch=(x86_64 powerpc64le powerpc64 powerpc)
+url='https://github.com/pspdev/gcc'
+license=(GPL LGPL FDL)
+depends=(psp-binutils libmpc zlib)
+makedepends=(git psp-newlib)
+options=(!emptydirs !debug !strip)
+source=(git+https://github.com/pspdev/gcc.git)
+sha256sums=('SKIP')
+
+pkgver() {
+  cd gcc
+  cat gcc/BASE-VER | head -1
+}
+
+prepare() {
+  cd gcc
+  mkdir -p "$srcdir/gcc-build"
+}
+
+build() {
+  cd gcc-build
+
+  CFLAGS=${CFLAGS/-pipe}
+  CFLAGS=${CFLAGS/-Wformat -Werror=format-security/}
+  CXXFLAGS=${CXXFLAGS/-pipe/}
+  CXXFLAGS=${CXXFLAGS/ -Wformat -Werror=format-security/}
+
+  "$srcdir/gcc/configure" \
+      --prefix=/usr/pspdev \
+      --target=${_target} \
+      --with-sysroot=/usr/pspdev/${_target} \
+      --enable-languages=c,c++ \
+      --with-float=hard \
+      --with-newlib \
+      --enable-cxx-flags="-G0" \
+      --disable-libssp \
+      --disable-libgomp \
+      --disable-libmudflap \
+      --disable-libquadmath \
+      --disable-libatomic \
+      --disable-nls \
+      --disable-shared \
+      --disable-threads \
+      --disable-multilib \
+      --disable-werror \
+      --disable-tls \
+      --enable-checking=release
+
+  make
+}
+
+package() {
+  cd gcc-build
+
+  make DESTDIR="$pkgdir" install
+
+  # Remove info and man pages that conflict with host
+  rm -rf "$pkgdir/usr/pspdev/share/info"
+  rm -rf "$pkgdir/usr/pspdev/share/man/man7"
+
+  # Strip binaries
+  strip "$pkgdir/usr/pspdev/bin/"* 2>/dev/null || true
+  find "$pkgdir/usr/pspdev/lib" -type f -name "*.a" -exec \
+    /usr/pspdev/bin/${_target}-strip --strip-debug {} \; 2>/dev/null || true
+}

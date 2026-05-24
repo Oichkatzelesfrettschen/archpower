@@ -1,0 +1,49 @@
+# POWER Maintainer: Alexander Baldeck <alex.bldck@gmail.com>
+# Maintainer: Alexander Baldeck <alex.bldck@gmail.com>
+
+_target=mips64r5900el-ps2-elf
+_target_alias=ee
+pkgname=ps2-ee-newlib
+pkgver=4.5.0
+pkgrel=1
+pkgdesc='C library for embedded systems (PlayStation 2 Emotion Engine)'
+arch=(any)
+url='https://github.com/ps2dev/newlib'
+license=(custom)
+depends=(ps2-ee-binutils)
+makedepends=(git ps2-ee-gcc)
+options=(!strip !libtool staticlibs)
+source=(git+https://github.com/ps2dev/newlib.git)
+sha256sums=('SKIP')
+
+pkgver() {
+  cd newlib
+  git describe --tags 2>/dev/null | sed 's/^v//;s/newlib-//;s/_/./g;s/-/+/g' || echo "4.5.0"
+}
+
+build() {
+  cd newlib
+
+  mkdir -p build && cd build
+
+  CFLAGS_FOR_TARGET="-O2 -gdwarf-2 -gz"
+
+  ../configure \
+    --prefix=/usr/ps2dev/${_target_alias} \
+    --target=${_target} \
+    --with-sysroot=/usr/ps2dev/${_target_alias}/${_target} \
+    --enable-newlib-retargetable-locking \
+    --enable-newlib-multithread \
+    --enable-newlib-io-c99-formats
+
+  make
+}
+
+package() {
+  cd newlib/build
+
+  make DESTDIR="$pkgdir" install
+
+  # Install license
+  install -Dm644 ../COPYING.NEWLIB "$pkgdir/usr/share/licenses/$pkgname/COPYING"
+}

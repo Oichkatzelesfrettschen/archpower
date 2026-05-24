@@ -1,0 +1,28 @@
+# POWER Maintainer: Alexander Baldeck <alex.bldck@gmail.com>
+# Maintainer: Alexander Baldeck <alex.bldck@gmail.com>
+
+_target_arch=arc
+_target=arc-unknown-linux-gnu
+pkgname=${_target}-linux-api-headers
+pkgver=6.13
+pkgrel=1
+pkgdesc="Kernel headers sanitized for use in userspace (${_target})"
+arch=(any)
+url='http://www.gnu.org/software/libc'
+license=(GPL2)
+makedepends=(rsync make)
+source=(https://www.kernel.org/pub/linux/kernel/v6.x/linux-${pkgver}.tar.xz)
+sha256sums=('e79dcc6eb86695c6babfb07c2861912b635d5075c6cd1cd0567d1ea155f80d6e')
+validpgpkeys=('ABAF11C65A2970B130ABE3C479BE3E4300411886' '647F28654894E3BD457199BE38DBBDC86092693E')
+
+build() {
+  cd linux-${pkgver}
+  make ARCH=arc mrproper
+}
+
+package() {
+  cd linux-${pkgver}
+  make INSTALL_HDR_PATH="$pkgdir/usr/$_target/usr" ARCH=arc headers_install
+  rm -rf "$pkgdir/usr/$_target/usr/include/drm"
+  find ${pkgdir} \( -name .install -o -name ..install.cmd \) -delete
+}
